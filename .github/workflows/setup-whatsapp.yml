@@ -9,14 +9,18 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - run: npm install
+
       - name: Show QR code
         run: |
           echo "Scan the QR below with WhatsApp → Linked Devices"
           timeout 90 node src/whatsapp.js --init || true
+
       - name: Save session to GitHub Secret
         if: always()
         env:
