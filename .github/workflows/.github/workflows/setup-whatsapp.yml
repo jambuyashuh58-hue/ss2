@@ -1,0 +1,33 @@
+name: WhatsApp QR Setup (run once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-whatsapp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Show QR code
+        run: |
+          echo "Scan the QR below with WhatsApp → Linked Devices"
+          timeout 90 node src/whatsapp.js --init || true
+
+      - name: Save session to GitHub Secret
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -d "sessions/whatsapp" ] && [ "$(ls -A sessions/whatsapp)" ]; then
+            SESSION_B64=$(tar -cz -C sessions/whatsapp . | base64 -w 0)
+            gh secret set WHATSAPP_SESSION --body "$SESSION_B64" --repo ${{ github.repository }}
+            echo "✅ Session saved!"
+          else
+            echo "❌ No session found"
+          fi
