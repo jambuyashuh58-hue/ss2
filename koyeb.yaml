@@ -1,0 +1,17 @@
+name: whatsapp-website-agent
+
+services:
+  - name: agent
+    type: worker
+    git:
+      branch: main
+    build:
+      buildpack: nodejs
+    run:
+      command: node src/index.js
+    instance_type: free
+    regions:
+      - was  # Washington DC — closest to India with low latency
+    scaling:
+      min: 1
+      max: 1
