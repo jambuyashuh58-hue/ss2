@@ -12,17 +12,19 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
+      - name: Install Node.js (NO setup-node)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nodejs npm
+          node -v
+          npm -v
 
       - name: Install dependencies
         run: npm install
 
       - name: Show QR code
         run: |
-          echo "📱 Scan the QR → WhatsApp → Linked Devices"
+          echo "📱 Scan QR → WhatsApp → Linked Devices"
           timeout 90 node src/whatsapp.js --init || true
 
       - name: Save session to GitHub Secret
