@@ -7,18 +7,27 @@ jobs:
   setup-whatsapp:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - run: npm install
+      - name: Install dependencies
+        run: |
+          if [ ! -f package.json ]; then
+            echo "❌ package.json not found"
+            exit 1
+          fi
+          npm install
 
       - name: Show QR code
         run: |
-          echo "Scan the QR below with WhatsApp → Linked Devices"
+          echo "📱 Scan the QR below → WhatsApp → Linked Devices"
           timeout 90 node src/whatsapp.js --init || true
 
       - name: Save session to GitHub Secret
@@ -26,10 +35,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "$GH_TOKEN" | gh auth login --with-token
+
           if [ -d "sessions/whatsapp" ] && [ "$(ls -A sessions/whatsapp)" ]; then
             SESSION_B64=$(tar -cz -C sessions/whatsapp . | base64 -w 0)
-            gh secret set WHATSAPP_SESSION --body "$SESSION_B64" --repo ${{ github.repository }}
-            echo "✅ Session saved!"
+            gh secret set WHATSAPP_SESSION --body "$SESSION_B64" --repo "${{ github.repository }}"
+            echo "✅ WhatsApp session saved to GitHub Secrets"
           else
-            echo "❌ No session — was QR scanned in time?"
+            echo "❌ No session found — QR not scanned in time"
           fi
