@@ -1,68 +1,27 @@
 name: WhatsApp QR Setup (run once)
- 
+
 on:
   workflow_dispatch:
- 
+
 jobs:
   generate-qr:
-    name: "Step 1 - Generate QR Code"
+    name: Generate QR Code Image
     runs-on: ubuntu-latest
     timeout-minutes: 3
- 
+
     steps:
       - uses: actions/checkout@v4
- 
+
       - name: Install dependencies
         run: npm install
- 
-      - name: Generate QR code HTML file
+
+      - name: Generate QR as image file
         run: node generate-qr.js
- 
-      - name: Upload QR code
+
+      - name: Upload QR image artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: SCAN-THIS-QR-CODE
           path: qr-code.html
           retention-days: 1
- 
-      - name: Instructions
-        run: |
-          echo "============================================"
-          echo "  QR CODE READY — follow these steps:      "
-          echo "  1. Click the artifact 'SCAN-THIS-QR-CODE'"
-          echo "  2. Download and open qr-code.html        "
-          echo "  3. Scan the QR with WhatsApp             "
-          echo "  4. Then run the Step 2 workflow below    "
-          echo "============================================"
- 
-  save-session:
-    name: "Step 2 - Save Session (run after scanning)"
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    needs: []
- 
-    steps:
-      - uses: actions/checkout@v4
- 
-      - name: Install dependencies
-        run: npm install
- 
-      - name: Connect and save session
-        run: |
-          echo "Running after QR scan..."
-          timeout 30 node generate-qr.js || true
- 
-      - name: Save session to GitHub Secret
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ -d "sessions/whatsapp" ] && [ "$(ls -A sessions/whatsapp)" ]; then
-            SESSION_B64=$(tar -cz -C sessions/whatsapp . | base64 -w 0)
-            gh secret set WHATSAPP_SESSION --body "$SESSION_B64" --repo ${{ github.repository }}
-            echo "✅ Session saved! You are all set."
-          else
-            echo "❌ No session — scan the QR first then re-run Step 2"
-          fi
- 
