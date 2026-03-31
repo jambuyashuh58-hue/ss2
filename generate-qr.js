@@ -1,11 +1,11 @@
-import {
-  default as makeWASocket,
+import pkg from '@whiskeysockets/baileys';
+const {
+  default: makeWASocket,
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
   DisconnectReason
-} from '@whiskeysockets/baileys';
-import pino from 'pino';
+} = pkg;
 import { mkdirSync, existsSync } from 'fs';
  
 const SESSION_DIR = './sessions/whatsapp';
