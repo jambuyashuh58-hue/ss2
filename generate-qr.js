@@ -10,7 +10,10 @@ import { mkdirSync, existsSync } from 'fs';
  
 const SESSION_DIR = './sessions/whatsapp';
 const logger = pino({ level: 'silent' });
-const PHONE = (process.env.WHATSAPP_PHONE || '').replace(/\D/g, '');
+const fullPhone = (process.env.WHATSAPP_PHONE || '').replace(/\D/g, '');
+// Try without country code (just 10 digits for India)
+const PHONE = fullPhone.startsWith('91') ? fullPhone.slice(2) : fullPhone;
+console.log('Using phone for pairing:', PHONE);
  
 if (!PHONE) {
   console.error('ERROR: WHATSAPP_PHONE secret not set.');
