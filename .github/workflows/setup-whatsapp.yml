@@ -8,6 +8,8 @@ jobs:
     name: Pair WhatsApp with phone number code
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: write
  
     steps:
       - uses: actions/checkout@v4
@@ -20,15 +22,16 @@ jobs:
           WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
         run: node generate-qr.js
  
-      - name: Save session to GitHub Secret
+      - name: Commit session to repo
         if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -d "sessions/whatsapp" ] && [ "$(ls -A sessions/whatsapp)" ]; then
-            SESSION_B64=$(tar -cz -C sessions/whatsapp . | base64 -w 0)
-            gh secret set WHATSAPP_SESSION --body "$SESSION_B64" --repo ${{ github.repository }}
-            echo "SUCCESS: WhatsApp session saved!"
+            git config user.name "Agent Bot"
+            git config user.email "agent@noreply.github.com"
+            git add -f sessions/whatsapp/
+            git diff --staged --quiet || git commit -m "chore: save whatsapp session [skip ci]"
+            git push
+            echo "SUCCESS: Session committed to repo!"
           else
             echo "FAILED: Code was not entered in time. Re-run the workflow."
           fi
