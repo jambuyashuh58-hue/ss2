@@ -4,9 +4,10 @@ on:
   workflow_dispatch:
  
 jobs:
-  setup-whatsapp:
+  generate-qr:
+    name: "Step 1 - Generate QR Code"
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
  
     steps:
       - uses: actions/checkout@v4
@@ -14,40 +15,43 @@ jobs:
       - name: Install dependencies
         run: npm install
  
-      - name: Generate QR image
-        run: |
-          timeout 30 node src/whatsapp.js --init || true
-          if [ -f "qr.txt" ]; then
-            node --input-type=module << 'EOF'
-          import QRCode from 'qrcode';
-          import { readFileSync } from 'fs';
-          const qr = readFileSync('./qr.txt', 'utf-8').trim();
-          await QRCode.toFile('./qr.png', qr, { width: 400, margin: 2 });
-          console.log('✅ QR image saved as qr.png');
-          EOF
-          else
-            echo "❌ qr.txt not generated"
-          fi
+      - name: Generate QR code HTML file
+        run: node generate-qr.js
  
-      - name: Upload QR code as artifact
+      - name: Upload QR code
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: whatsapp-qr-code
-          path: qr.png
+          name: SCAN-THIS-QR-CODE
+          path: qr-code.html
           retention-days: 1
  
-      - name: Wait for scan then reconnect
+      - name: Instructions
         run: |
           echo "============================================"
-          echo "  DOWNLOAD the artifact 'whatsapp-qr-code' "
-          echo "  Open qr.png on your computer             "
-          echo "  WhatsApp phone -> Linked Devices -> Scan "
+          echo "  QR CODE READY — follow these steps:      "
+          echo "  1. Click the artifact 'SCAN-THIS-QR-CODE'"
+          echo "  2. Download and open qr-code.html        "
+          echo "  3. Scan the QR with WhatsApp             "
+          echo "  4. Then run the Step 2 workflow below    "
           echo "============================================"
-          sleep 90
  
-      - name: Reconnect and save session
-        run: timeout 30 node src/whatsapp.js --init || true
+  save-session:
+    name: "Step 2 - Save Session (run after scanning)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    needs: []
+ 
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - name: Install dependencies
+        run: npm install
+ 
+      - name: Connect and save session
+        run: |
+          echo "Running after QR scan..."
+          timeout 30 node generate-qr.js || true
  
       - name: Save session to GitHub Secret
         if: always()
@@ -57,7 +61,8 @@ jobs:
           if [ -d "sessions/whatsapp" ] && [ "$(ls -A sessions/whatsapp)" ]; then
             SESSION_B64=$(tar -cz -C sessions/whatsapp . | base64 -w 0)
             gh secret set WHATSAPP_SESSION --body "$SESSION_B64" --repo ${{ github.repository }}
-            echo "✅ Session saved! WhatsApp connected."
+            echo "✅ Session saved! You are all set."
           else
-            echo "❌ Not scanned in time — re-run and scan faster"
+            echo "❌ No session — scan the QR first then re-run Step 2"
           fi
+ 
