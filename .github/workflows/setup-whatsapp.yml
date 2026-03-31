@@ -1,27 +1,35 @@
 name: WhatsApp QR Setup (run once)
-
+ 
 on:
   workflow_dispatch:
-
+ 
 jobs:
-  generate-qr:
-    name: Generate QR Code Image
+  pair-whatsapp:
+    name: Pair WhatsApp with phone number code
     runs-on: ubuntu-latest
-    timeout-minutes: 3
-
+    timeout-minutes: 5
+ 
     steps:
       - uses: actions/checkout@v4
-
+ 
       - name: Install dependencies
         run: npm install
-
-      - name: Generate QR as image file
+ 
+      - name: Get pairing code and wait for entry
+        env:
+          WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
         run: node generate-qr.js
-
-      - name: Upload QR image artifact
-        uses: actions/upload-artifact@v4
+ 
+      - name: Save session to GitHub Secret
         if: always()
-        with:
-          name: SCAN-THIS-QR-CODE
-          path: qr-code.html
-          retention-days: 1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -d "sessions/whatsapp" ] && [ "$(ls -A sessions/whatsapp)" ]; then
+            SESSION_B64=$(tar -cz -C sessions/whatsapp . | base64 -w 0)
+            gh secret set WHATSAPP_SESSION --body "$SESSION_B64" --repo ${{ github.repository }}
+            echo "SUCCESS: WhatsApp session saved!"
+          else
+            echo "FAILED: Code was not entered in time. Re-run the workflow."
+          fi
+ 
